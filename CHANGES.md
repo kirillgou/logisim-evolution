@@ -2,6 +2,9 @@
 
 # Changes #
 
+* @addDifferentVideoProportions()
+  * Modification of Video.java to allow width and height in a range
+  
 * v3.8.0 (2022-10-02)
   * Added reset value attribute to input pins
   * Fixed boolean algebra minimal form bug
