@@ -94,9 +94,10 @@ class Video extends ManagedComponent implements ToolTipMaker, AttributeListener 
   public static final Attribute<String> COLOR_OPTION =
       Attributes.forOption("color", S.getter("rgbVideoColor"), COLOR_OPTIONS);
   public static final Attribute<Integer> WIDTH_OPTION =
-      Attributes.forOption("width", S.getter("rgbVideoWidth"), SIZE_OPTIONS);
+      Attributes.forIntegerRange("width", S.getter("rgbVideoWidth"), 2,128);
+
   public static final Attribute<Integer> HEIGHT_OPTION =
-      Attributes.forOption("height", S.getter("rgbVideoHeight"), SIZE_OPTIONS);
+      Attributes.forIntegerRange("height", S.getter("rgbVideoHeight"), 2,128);
   public static final Attribute<Integer> SCALE_OPTION =
       Attributes.forIntegerRange("scale", S.getter("rgbVideoScale"), 1, 8);
 
@@ -480,8 +481,10 @@ class Video extends ManagedComponent implements ToolTipMaker, AttributeListener 
   void configureComponent() {
     final var attrs = getAttributeSet();
     final var bpp = getColorModel(attrs.getValue(COLOR_OPTION)).getPixelSize();
-    final var xs = 31 - Integer.numberOfLeadingZeros(attrs.getValue(WIDTH_OPTION));
-    final var ys = 31 - Integer.numberOfLeadingZeros(attrs.getValue(HEIGHT_OPTION));
+    final var w = attrs.getValue(WIDTH_OPTION);
+    final var h = attrs.getValue(HEIGHT_OPTION);
+    final var xs = (((Math.log(w)/Math.log(2))%1==0) ? 31 : 32) - Integer.numberOfLeadingZeros(w);
+    final var ys = (((Math.log(h)/Math.log(2))%1==0) ? 31 : 32) - Integer.numberOfLeadingZeros(h);
     setEnd(P_X, getLocation().translate(40, 0), BitWidth.create(xs), EndData.INPUT_ONLY);
     setEnd(P_Y, getLocation().translate(50, 0), BitWidth.create(ys), EndData.INPUT_ONLY);
     setEnd(P_DATA, getLocation().translate(60, 0), BitWidth.create(bpp), EndData.INPUT_ONLY);
