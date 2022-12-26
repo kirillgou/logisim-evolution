@@ -9,8 +9,6 @@
 
 package com.cburch.logisim.std.memory;
 
-import static com.cburch.logisim.std.Strings.S;
-
 import com.cburch.logisim.data.AttributeSet;
 import com.cburch.logisim.data.Bounds;
 import com.cburch.logisim.data.Direction;
@@ -19,11 +17,9 @@ import com.cburch.logisim.instance.InstancePainter;
 import com.cburch.logisim.instance.Port;
 import com.cburch.logisim.instance.StdAttr;
 import com.cburch.logisim.util.GraphicsUtil;
-import java.awt.BasicStroke;
-import java.awt.Graphics2D;
 
 
-public class RamAppearance {
+public class RamDualPortAppearance {
 
   public static int getNrAddrPorts(AttributeSet attrs) {
     return 1;
@@ -225,7 +221,7 @@ public class RamAppearance {
     /* draw connections */
     drawConnections(inst, attrs, painter);
     /* draw the size */
-    final var type = inst.getFactory() instanceof Ram ? "RAM " : "ROM ";  // FIXME: hardcoded string
+    final var type = inst.getFactory() instanceof Rom ? "ROM " : "RAM ";  // FIXME: hardcoded string
     GraphicsUtil.drawCenteredText(g,
         type + Mem.getSizeLabel(painter.getAttributeValue(Mem.ADDR_ATTR).getWidth())
             + " x " + painter.getAttributeValue(Mem.DATA_ATTR).getWidth(),
@@ -266,7 +262,7 @@ public class RamAppearance {
     /* draw connections */
     drawConnections(inst, attrs, painter);
     /* draw the size */
-    final var type = inst.getFactory() instanceof Ram ? "RAM " : "ROM ";  // FIXME hardcoded string
+    final var type = inst.getFactory() instanceof Rom ? "ROM " : "RAM ";  // FIXME hardcoded string
     GraphicsUtil.drawCenteredText(g,
         type + Mem.getSizeLabel(painter.getAttributeValue(Mem.ADDR_ATTR).getWidth())
             + " x " + painter.getAttributeValue(Mem.DATA_ATTR).getWidth(),
@@ -507,6 +503,7 @@ public class RamAppearance {
         || attrs.getValue(StdAttr.TRIGGER).equals(StdAttr.TRIG_FALLING));
   }
 
+  //TODO add connector for part B
   private static void drawConnections(Instance inst, AttributeSet attrs, InstancePainter painter) {
     boolean classic = classicAppearance(attrs);
     final var g = (Graphics2D) painter.getGraphics().create();
