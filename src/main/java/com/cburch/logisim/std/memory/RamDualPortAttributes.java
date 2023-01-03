@@ -9,67 +9,65 @@
 
 package com.cburch.logisim.std.memory;
 
-import static com.cburch.logisim.std.Strings.S;
-
-import com.cburch.logisim.data.AbstractAttributeSet;
-import com.cburch.logisim.data.Attribute;
-import com.cburch.logisim.data.AttributeOption;
-import com.cburch.logisim.data.Attributes;
-import com.cburch.logisim.data.BitWidth;
+import com.cburch.logisim.data.*;
 import com.cburch.logisim.instance.StdAttr;
 import com.cburch.logisim.prefs.AppPreferences;
-import java.awt.Font;
+
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RamAttributes extends AbstractAttributeSet {
+import static com.cburch.logisim.std.Strings.S;
 
-  /* here the rest is defined */
-  static final AttributeOption VOLATILE =
-      new AttributeOption("volatile", S.getter("ramTypeVolatile"));
-  static final AttributeOption NONVOLATILE =
-      new AttributeOption("nonvolatile", S.getter("ramTypeNonVolatile"));
-  static final Attribute<AttributeOption> ATTR_TYPE =
-      Attributes.forOption(
-          "type", S.getter("ramTypeAttr"), new AttributeOption[] {VOLATILE, NONVOLATILE});
-  static final AttributeOption BUS_BIDIR =
-      new AttributeOption("bidir", S.getter("ramBidirDataBus"));
-  static final AttributeOption BUS_SEP =
-      new AttributeOption("bibus", S.getter("ramSeparateDataBus"));
-  static final Attribute<AttributeOption> ATTR_DBUS =
-      Attributes.forOption(
-          "databus", S.getter("ramDataAttr"), new AttributeOption[] {BUS_BIDIR, BUS_SEP});
-  static final AttributeOption BUS_WITH_BYTEENABLES =
-      new AttributeOption("byteEnables", S.getter("ramWithByteEnables"));
-  static final AttributeOption BUS_WITHOUT_BYTE_ENABLES =
-      new AttributeOption("NobyteEnables", S.getter("ramNoByteEnables"));
-  static final Attribute<AttributeOption> ATTR_ByteEnables =
-      Attributes.forOption(
-          "byteenables",
-          S.getter("ramByteEnables"),
-          new AttributeOption[] {BUS_WITH_BYTEENABLES, BUS_WITHOUT_BYTE_ENABLES});
-  static final Attribute<Boolean> CLEAR_PIN =
-      Attributes.forBoolean("clearpin", S.getter("RamClearPin"));
-  protected final ArrayList<Attribute<?>> myAttributes = new ArrayList<>();
+public class RamDualPortAttributes extends RamAttributes {
 
-  protected BitWidth addrBits = BitWidth.create(8);
-  protected BitWidth dataBits = BitWidth.create(8);
-  protected String label = "";
-  protected AttributeOption trigger = StdAttr.TRIG_RISING;
-  protected AttributeOption busStyle = BUS_SEP;
-  protected Font labelFont = StdAttr.DEFAULT_LABEL_FONT;
-  protected Boolean labelVisible = false;
-  protected AttributeOption byteEnables = BUS_WITHOUT_BYTE_ENABLES;
-  protected Boolean asynchronousRead = false;
-  protected AttributeOption appearance = AppPreferences.getDefaultAppearance();
-  protected AttributeOption readWriteBehavior = Mem.READAFTERWRITE;
-  protected Boolean clearPin = false;
-  protected AttributeOption lineSize = Mem.SINGLE;
-  protected Boolean allowMisaligned = false;
-  protected AttributeOption typeOfEnables = Mem.USEBYTEENABLES;
-  protected AttributeOption ramType = VOLATILE;
+//  /* here the rest is defined */
+//  static final AttributeOption VOLATILE =
+//      new AttributeOption("volatile", S.getter("ramTypeVolatile"));
+//  static final AttributeOption NONVOLATILE =
+//      new AttributeOption("nonvolatile", S.getter("ramTypeNonVolatile"));
+//  static final Attribute<AttributeOption> ATTR_TYPE =
+//      Attributes.forOption(
+//          "type", S.getter("ramTypeAttr"), new AttributeOption[] {VOLATILE, NONVOLATILE});
+//  static final AttributeOption BUS_BIDIR =
+//      new AttributeOption("bidir", S.getter("ramBidirDataBus"));
+//  static final AttributeOption BUS_SEP =
+//      new AttributeOption("bibus", S.getter("ramSeparateDataBus"));
+//  static final Attribute<AttributeOption> ATTR_DBUS =
+//      Attributes.forOption(
+//          "databus", S.getter("ramDataAttr"), new AttributeOption[] {BUS_BIDIR, BUS_SEP});
+//  static final AttributeOption BUS_WITH_BYTEENABLES =
+//      new AttributeOption("byteEnables", S.getter("ramWithByteEnables"));
+//  static final AttributeOption BUS_WITHOUT_BYTE_ENABLES =
+//      new AttributeOption("NobyteEnables", S.getter("ramNoByteEnables"));
+//  static final Attribute<AttributeOption> ATTR_ByteEnables =
+//      Attributes.forOption(
+//          "byteenables",
+//          S.getter("ramByteEnables"),
+//          new AttributeOption[] {BUS_WITH_BYTEENABLES, BUS_WITHOUT_BYTE_ENABLES});
+//  static final Attribute<Boolean> CLEAR_PIN =
+//      Attributes.forBoolean("clearpin", S.getter("RamClearPin"));
+//  private final ArrayList<Attribute<?>> myAttributes = new ArrayList<>();
 
-  RamAttributes() {
+  protected BitWidth addrBBits = BitWidth.create(8);
+  protected BitWidth dataBBits = BitWidth.create(8);
+
+//  private String label = "";
+//  private AttributeOption trigger = StdAttr.TRIG_RISING;
+//  private AttributeOption busStyle = BUS_SEP;
+//  private Font labelFont = StdAttr.DEFAULT_LABEL_FONT;
+//  private Boolean labelVisible = false;
+//  private AttributeOption byteEnables = BUS_WITHOUT_BYTE_ENABLES;
+//  private Boolean asynchronousRead = false;
+//  private AttributeOption appearance = AppPreferences.getDefaultAppearance();
+//  private AttributeOption readWriteBehavior = Mem.READAFTERWRITE;
+//  private Boolean clearPin = false;
+//  private AttributeOption lineSize = Mem.SINGLE;
+//  private Boolean allowMisaligned = false;
+//  private AttributeOption typeOfEnables = Mem.USEBYTEENABLES;
+//  private AttributeOption ramType = VOLATILE;
+
+  RamDualPortAttributes() {
     updateAttributes();
   }
 
@@ -114,12 +112,14 @@ public class RamAttributes extends AbstractAttributeSet {
       myAttributes.clear();
       myAttributes.addAll(newList);
     }
+    newList.add(MemDualPort.ADDR_B_ATTR);
+    newList.add(MemDualPort.DATA_B_ATTR);
     return changes;
   }
 
   @Override
   protected void copyInto(AbstractAttributeSet dest) {
-    final var d = (RamAttributes) dest;
+    final var d = (RamDualPortAttributes) dest;
     d.addrBits = addrBits;
     d.dataBits = dataBits;
     d.trigger = trigger;
@@ -134,6 +134,8 @@ public class RamAttributes extends AbstractAttributeSet {
     d.allowMisaligned = allowMisaligned;
     d.typeOfEnables = typeOfEnables;
     d.ramType = ramType;
+    d.addrBBits = addrBBits;
+    d.dataBBits = dataBBits;
   }
 
   @Override
@@ -192,6 +194,12 @@ public class RamAttributes extends AbstractAttributeSet {
     if (attr == Mem.ENABLES_ATTR) {
       return (V) typeOfEnables;
     }
+    if (attr == MemDualPort.ADDR_B_ATTR) {
+      return (V) addrBBits;
+    }
+    if (attr == MemDualPort.DATA_B_ATTR) {
+      return (V) dataBBits;
+    }
     return null;
   }
 
@@ -199,13 +207,17 @@ public class RamAttributes extends AbstractAttributeSet {
   public <V> void setValue(Attribute<V> attr, V value) {
     if (attr == Mem.ADDR_ATTR) {
       final var newAddr = (BitWidth) value;
+      final var newAddrB = (BitWidth) value;
       if (addrBits == newAddr) return;
       addrBits = newAddr;
+      addrBBits = newAddrB;
       fireAttributeValueChanged(attr, value, null);
     } else if (attr == Mem.DATA_ATTR) {
       final var newData = (BitWidth) value;
+      final var newDataB = (BitWidth) value;
       if (dataBits == newData) return;
       dataBits = newData;
+      dataBBits = newDataB;
       if (typeOfEnables.equals(Mem.USEBYTEENABLES) && updateAttributes())
         fireAttributeListChanged();
       fireAttributeValueChanged(attr, value, null);
@@ -296,5 +308,20 @@ public class RamAttributes extends AbstractAttributeSet {
       appearance = option;
       fireAttributeValueChanged(attr, value, null);
     }
+//    else
+//      //TODO pas besion je pense
+//      if (attr == MemDualPort.ADDR_B_ATTR) {
+//      final var newAddr = (BitWidth) value;
+//      if (addrBBits == newAddr) return;
+//      addrBBits = newAddr;
+//      fireAttributeValueChanged(attr, value, null);
+//    } else if (attr == MemDualPort.DATA_B_ATTR) {
+//      final var newData = (BitWidth) value;
+//      if (dataBBits == newData) return;
+//      dataBBits = newData;
+//      if (typeOfEnables.equals(Mem.USEBYTEENABLES) && updateAttributes())
+//        fireAttributeListChanged();
+//      fireAttributeValueChanged(attr, value, null);
+//    }
   }
 }

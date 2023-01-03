@@ -9,17 +9,26 @@
 
 package com.cburch.logisim.std.memory;
 
+import static com.cburch.logisim.std.Strings.S;
+
 import com.cburch.logisim.circuit.Circuit;
 import com.cburch.logisim.circuit.CircuitState;
 import com.cburch.logisim.comp.Component;
-import com.cburch.logisim.data.*;
+import com.cburch.logisim.data.Attribute;
+import com.cburch.logisim.data.AttributeSet;
+import com.cburch.logisim.data.BitWidth;
+import com.cburch.logisim.data.Bounds;
+import com.cburch.logisim.data.Value;
 import com.cburch.logisim.fpga.designrulecheck.CorrectLabel;
 import com.cburch.logisim.fpga.designrulecheck.netlistComponent;
 import com.cburch.logisim.gui.hex.HexFrame;
 import com.cburch.logisim.gui.icons.ArithmeticIcon;
-import com.cburch.logisim.instance.*;
+import com.cburch.logisim.instance.Instance;
+import com.cburch.logisim.instance.InstanceLogger;
+import com.cburch.logisim.instance.InstancePainter;
+import com.cburch.logisim.instance.InstanceState;
+import com.cburch.logisim.instance.StdAttr;
 import com.cburch.logisim.proj.Project;
-
 import java.util.WeakHashMap;
 
 
@@ -106,7 +115,7 @@ public class RamDualPort extends MemDualPort {
 
   @Override
   public AttributeSet createAttributeSet() {
-    return new RamAttributes();
+    return new RamDualPortAttributes();
   }
 
   @Override
@@ -156,7 +165,7 @@ public class RamDualPort extends MemDualPort {
     final var ret = (RamState) instance.getData(state);
     if (ret == null) return true;
     final var contents = ret.getContents();
-    if (instance.getAttributeValue(RamAttributes.ATTR_TYPE).equals(RamAttributes.VOLATILE)) {
+    if (instance.getAttributeValue(RamDualPortAttributes.ATTR_TYPE).equals(RamDualPortAttributes.VOLATILE)) {
       contents.condClear();
     }
     return false;
@@ -194,13 +203,16 @@ public class RamDualPort extends MemDualPort {
     super.instanceAttributeChanged(instance, attr);
     if ((attr == Mem.DATA_ATTR)
         || (attr == Mem.ADDR_ATTR)
-        || (attr == RamAttributes.ATTR_DBUS)
+        || (attr == RamDualPortAttributes.ATTR_DBUS)
         || (attr == StdAttr.TRIGGER)
-        || (attr == RamAttributes.ATTR_ByteEnables)
+        || (attr == RamDualPortAttributes.ATTR_ByteEnables)
         || (attr == StdAttr.APPEARANCE)
         || (attr == Mem.LINE_ATTR)
-        || (attr == RamAttributes.CLEAR_PIN)
-        || (attr == Mem.ENABLES_ATTR)) {
+        || (attr == RamDualPortAttributes.CLEAR_PIN)
+        || (attr == Mem.ENABLES_ATTR)
+        || (attr == MemDualPort.ADDR_B_ATTR)
+        || (attr == MemDualPort.DATA_B_ATTR)
+    ) {
       instance.recomputeBounds();
       configurePorts(instance);
     }
@@ -219,9 +231,9 @@ public class RamDualPort extends MemDualPort {
   public void propagate(InstanceState state) {
     final var attrs = state.getAttributeSet();
     final var myState = (RamState) getState(state);
-
+    var edgeB = false;
     // first we check the clear pin
-    if (attrs.getValue(RamAttributes.CLEAR_PIN)) {
+    if (attrs.getValue(RamDualPortAttributes.CLEAR_PIN)) {
       final var clearValue = state.getPortValue(RamDualPortAppearance.getClrIndex(0, attrs));
       if (clearValue.equals(Value.TRUE)) {
         myState.getContents().clear();
@@ -244,14 +256,35 @@ public class RamDualPort extends MemDualPort {
     final var goodAddr = addrValue.isFullyDefined() && addr >= 0;
     if (goodAddr && addr != myState.getCurrent()) {
       myState.setCurrent(addr);
-      myState.scrollToShow(addr);
+//      myState.scrollToShow(addr);
     }
 
     // now we handle the two different behaviors, line-enables or byte-enables
     if (attrs.getValue(Mem.ENABLES_ATTR).equals(Mem.USELINEENABLES)) {
+      //TODO not change yet
       propagateLineEnables(state, addr, goodAddr, addrValue.isErrorValue());
     } else {
-      propagateByteEnables(state, addr, goodAddr, addrValue.isErrorValue());
+      // TODO Changing
+      edgeB = propagateByteEnables(state, addr, goodAddr, addrValue.isErrorValue(), true, false);
+    }
+
+//    final var myStateB = (RamState) getState(state);
+    //Same for addr B
+    // next we get the address and the mem value currently stored
+    final var addrBValue = state.getPortValue(RamDualPortAppearance.getAddrIndexB(0, attrs));
+    long addrB = addrBValue.toLongValue();
+    final var goodAddrB = addrBValue.isFullyDefined() && addrB >= 0;
+    if (goodAddrB && addrB != myState.getCurrent()) {
+      myState.setCurrent(addrB);
+      myState.scrollToShow(addrB);
+    }
+
+    // now we handle the two different behaviors, line-enables or byte-enables
+    if (attrs.getValue(Mem.ENABLES_ATTR).equals(Mem.USELINEENABLES)) {
+//      propagateLineEnables(state, addrB, goodAddrB, addrBValue.isErrorValue());
+    } else {
+      //write process
+      propagateByteEnables(state, addrB, goodAddrB, addrBValue.isErrorValue(), false, edgeB);
     }
   }
 
@@ -297,7 +330,8 @@ public class RamDualPort extends MemDualPort {
     }
   }
 
-  private void propagateByteEnables(InstanceState state, long addr, boolean goodAddr, boolean errorValue) {
+  private boolean propagateByteEnables(InstanceState state, long addr, boolean goodAddr, boolean errorValue,
+                                    boolean isA, boolean edgeB) {
     final var attrs = state.getAttributeSet();
     final var myState = (RamState) getState(state);
     final var separate = isSeparate(attrs);
@@ -305,24 +339,27 @@ public class RamDualPort extends MemDualPort {
     long newMemValue = oldMemValue;
     // perform writes
     Object trigger = state.getAttributeValue(StdAttr.TRIGGER);
-    final var weValue = state.getPortValue(RamDualPortAppearance.getWEIndex(0, attrs));
+    final var weValue = state.getPortValue(isA ? RamDualPortAppearance.getWEIndex(0, attrs)
+        : RamDualPortAppearance.getWEIndexB(0, attrs));
     final var async = trigger.equals(StdAttr.TRIG_HIGH) || trigger.equals(StdAttr.TRIG_LOW);
     final var edge =
-        !async && myState
-            .setClock(state.getPortValue(RamDualPortAppearance.getClkIndex(0, attrs)), trigger);
+        !async && myState.setClock(state.getPortValue(RamDualPortAppearance.getClkIndex(0, attrs)), trigger);
     final var weAsync =
         (trigger.equals(StdAttr.TRIG_HIGH) && weValue.equals(Value.TRUE))
             || (trigger.equals(StdAttr.TRIG_LOW) && weValue.equals(Value.FALSE));
-    final var weTriggered = (async && weAsync) || (edge && weValue.equals(Value.TRUE));
+    final var weTriggered =
+        (async && weAsync) || (edge && weValue.equals(Value.TRUE) || (!isA && edgeB && weValue.equals(Value.TRUE)));
     if (goodAddr && weTriggered) {
-      long dataInValue = state.getPortValue(RamDualPortAppearance.getDataInIndex(0, attrs)).toLongValue();
+      long dataInValue = state.getPortValue(isA ? RamDualPortAppearance.getDataInIndex(0, attrs)
+          : RamDualPortAppearance.getDataInIndexB(0, attrs)).toLongValue();
       if (RamDualPortAppearance.getNrBEPorts(attrs) == 0) {
         newMemValue = dataInValue;
       } else {
         for (var i = 0; i < RamDualPortAppearance.getNrBEPorts(attrs); i++) {
           long mask = 0xFF << (i * 8);
           long andMask = ~mask;
-          if (state.getPortValue(RamDualPortAppearance.getBEIndex(i, attrs)).equals(Value.TRUE)) {
+          if (state.getPortValue(isA ? RamDualPortAppearance.getBEIndex(i, attrs)
+              : RamDualPortAppearance.getBEIndexB(i, attrs)).equals(Value.TRUE)) {
             newMemValue &= andMask;
             newMemValue |= (dataInValue & mask);
           }
@@ -333,34 +370,43 @@ public class RamDualPort extends MemDualPort {
 
     // perform reads
     final var dataBits = state.getAttributeValue(DATA_ATTR);
-    final var outputNotEnabled = state.getPortValue(RamDualPortAppearance.getOEIndex(0, attrs)).equals(Value.FALSE);
+    final var outputNotEnabled = state.getPortValue(isA ? RamDualPortAppearance.getOEIndex(0, attrs)
+        : RamDualPortAppearance.getOEIndexB(0, attrs)).equals(Value.FALSE);
     if (!separate && outputNotEnabled) {
       /* put the bus in tri-state in case of a combined bus and no output enable */
-      state.setPort(RamDualPortAppearance.getDataOutIndex(0, attrs), Value.createUnknown(dataBits), DELAY);
-      return;
+      state.setPort(isA ? RamDualPortAppearance.getDataOutIndex(0, attrs)
+          : RamDualPortAppearance.getDataOutIndexB(0, attrs), Value.createUnknown(dataBits), DELAY);
+      return edge;
     }
     /* if the OE is not activated return */
-    if (outputNotEnabled) return;
+    if (outputNotEnabled){
+      return edge;
+    }
 
     /* if the address is bogus set error value */
     if (!goodAddr || errorValue) {
-      state.setPort(RamDualPortAppearance.getDataOutIndex(0, attrs), Value.createError(dataBits), DELAY);
-      return;
+      state.setPort(isA ? RamDualPortAppearance.getDataOutIndex(0, attrs)
+          : RamDualPortAppearance.getDataOutIndexB(0, attrs), Value.createError(dataBits), DELAY);
+      return edge;
     }
 
     final var asyncRead = async || attrs.getValue(Mem.ASYNC_READ);
 
     if (asyncRead) {
-      state.setPort(RamDualPortAppearance.getDataOutIndex(0, attrs), Value.createKnown(dataBits, newMemValue), DELAY);
-      return;
+      state.setPort(isA ? RamDualPortAppearance.getDataOutIndex(0, attrs)
+          : RamDualPortAppearance.getDataOutIndexB(0, attrs), Value.createKnown(dataBits, newMemValue), DELAY);
+      return edge;
     }
 
-    if (edge) {
-      if (attrs.getValue(Mem.READ_ATTR).equals(Mem.READAFTERWRITE))
-        state.setPort(RamDualPortAppearance.getDataOutIndex(0, attrs), Value.createKnown(dataBits, newMemValue), DELAY);
-      else
-        state.setPort(RamDualPortAppearance.getDataOutIndex(0, attrs), Value.createKnown(dataBits, oldMemValue), DELAY);
+    if (edge || (!isA && edgeB)) {
+      if (attrs.getValue(Mem.READ_ATTR).equals(Mem.READAFTERWRITE)) {
+        state.setPort(isA ? RamDualPortAppearance.getDataOutIndex(0, attrs)
+            : RamDualPortAppearance.getDataOutIndexB(0, attrs), Value.createKnown(dataBits, newMemValue), DELAY);
+      }else
+        state.setPort(isA ? RamDualPortAppearance.getDataOutIndex(0, attrs)
+            : RamDualPortAppearance.getDataOutIndexB(0, attrs), Value.createKnown(dataBits, oldMemValue), DELAY);
     }
+    return edge;
   }
 
   @Override
@@ -369,8 +415,8 @@ public class RamDualPort extends MemDualPort {
   }
 
   public static boolean isSeparate(AttributeSet attrs) {
-    Object bus = attrs.getValue(RamAttributes.ATTR_DBUS);
-    return bus == null || bus.equals(RamAttributes.BUS_SEP);
+    Object bus = attrs.getValue(RamDualPortAttributes.ATTR_DBUS);
+    return bus == null || bus.equals(RamDualPortAttributes.BUS_SEP);
   }
 
   @Override
