@@ -210,7 +210,7 @@ public class Download extends DownloadBase implements Runnable, BaseWindowListen
     fireEvent(new ActionEvent(this, 1, "DownloadDone"));
   }
 
-  public boolean runTty() {
+  public boolean runTty() { //NOTES this finction creates the hdl files and then runs the vendor software
     final var root = myProject.getLogisimFile().getCircuit(topLevelSheet);
     if (root != null) {
       root.annotate(myProject, false, false);

@@ -251,7 +251,7 @@ public class RamDualPortAppearance {
       ps[getBEIndex(i, attrs)] = getBEPort(i, attrs);
     for (var i = 0; i < getNrClrPorts(attrs); i++)
       ps[getClrIndex(i, attrs)] = getClrPort(i, attrs);
-    //TODO Add For B chanel
+    //note Add For B chanel
     for (var i = 0; i < getNrAddrPorts(attrs); i++)
       ps[getAddrIndexB(i, attrs)] = getAddrBPort(i, attrs);
     for (var i = 0; i < getNrDataInPorts(attrs); i++)
