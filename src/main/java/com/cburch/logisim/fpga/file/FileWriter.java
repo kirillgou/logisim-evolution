@@ -34,6 +34,8 @@ public class FileWriter {
           return null;
         }
       }
+      System.out.println("outDir: " + outDir);
+
       fileName.append(targetDirectory);
       if (!targetDirectory.endsWith(File.separator)) fileName.append(File.separator);
       fileName.append(componentName);

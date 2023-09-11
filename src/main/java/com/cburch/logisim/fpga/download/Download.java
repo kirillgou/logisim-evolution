@@ -39,6 +39,7 @@ public class Download extends DownloadBase implements Runnable, BaseWindowListen
 
   private boolean downloadOnly;
   private boolean generateHdlOnly;
+  private boolean useServer;
   private char vendor;
   private boolean useGui;
   private JProgressBar progressBar;
@@ -66,7 +67,8 @@ public class Download extends DownloadBase implements Runnable, BaseWindowListen
       boolean downloadOnly,
       boolean gegerateHdlOnly,
       JProgressBar progressBar,
-      JFrame myParent) {
+      JFrame myParent,
+      boolean useServer) {
     this.progressBar = progressBar;
     parent = myParent;
     setUpDownload(
@@ -77,7 +79,8 @@ public class Download extends DownloadBase implements Runnable, BaseWindowListen
         mapFileName,
         writeToFlash,
         downloadOnly,
-        gegerateHdlOnly);
+        gegerateHdlOnly,
+        useServer);
   }
 
   public Download(
@@ -88,7 +91,8 @@ public class Download extends DownloadBase implements Runnable, BaseWindowListen
       String mapFileName,
       boolean writeToFlash,
       boolean downloadOnly,
-      boolean generateHdlOnly) {
+      boolean generateHdlOnly,
+      boolean useServer) {
     setUpDownload(
         myProject,
         topLevelSheet,
@@ -97,7 +101,8 @@ public class Download extends DownloadBase implements Runnable, BaseWindowListen
         mapFileName,
         writeToFlash,
         downloadOnly,
-        generateHdlOnly);
+        generateHdlOnly,
+        useServer);
   }
 
   private void setUpDownload(
@@ -108,11 +113,13 @@ public class Download extends DownloadBase implements Runnable, BaseWindowListen
       String mapFileName,
       boolean writeToFlash,
       boolean downloadOnly,
-      boolean generateHdlOnly) {
+      boolean generateHdlOnly,
+      boolean useServer) {
     this.myProject = myProject;
     this.myBoardInformation = myBoardInformation;
     this.downloadOnly = downloadOnly;
     this.generateHdlOnly = generateHdlOnly;
+    this.useServer = useServer;
     if (myBoardInformation == null) {
       this.generateHdlOnly = true;
       this.vendor = ' ';

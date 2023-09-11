@@ -821,7 +821,8 @@ public class Startup implements AWTEventListener {
             testCircuitImpMapFile,
             false,
             false,
-            testCircuitHdlOnly);
+            testCircuitHdlOnly,
+            false);
     return downloader.runTty();
   }
 

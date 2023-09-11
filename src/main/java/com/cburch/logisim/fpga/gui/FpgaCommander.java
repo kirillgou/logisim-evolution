@@ -41,14 +41,7 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
+import javax.swing.*;
 
 public class FpgaCommander
     implements ActionListener,
@@ -80,6 +73,11 @@ public class FpgaCommander
   private final FpgaClockPanel FrequencyPanel;
   private final Project MyProject;
   private BoardInformation MyBoardInformation = null;
+
+  private String localWorkspace;
+
+  //note my add
+  private JCheckBox serverCompilation = new JCheckBox(S.get("FpgaGuiServerSyntAndD"));
 
   @Override
   public void preferenceChange(PreferenceChangeEvent pce) {
@@ -203,7 +201,8 @@ public class FpgaCommander
     annotationList.setEnabled(enabled);
     annotateButton.setEnabled(enabled);
   }
-
+  // NOTE generation de la partie de la fenetre action methode
+  // à modifier pour ajouter la possibilité du remote compilation
   private JPanel getExecuteWindow() {
     JPanel pan = new JPanel();
     pan.setLayout(new BorderLayout());
@@ -219,11 +218,14 @@ public class FpgaCommander
     circuitsList.setActionCommand("mainCircuit");
     circuitsList.addActionListener(this);
     pan1.add(circuitsList, BorderLayout.CENTER);
+//    pan1.add(serverCompilation, BorderLayout.SOUTH);
+
     pan.add(pan1, BorderLayout.NORTH);
     validateButton.setActionCommand("Download");
     validateButton.addActionListener(this);
     pan.add(actionCommands, BorderLayout.CENTER);
     pan.add(validateButton, BorderLayout.SOUTH);
+    pan.add(serverCompilation, BorderLayout.EAST);
     return pan;
   }
 
@@ -232,6 +234,7 @@ public class FpgaCommander
     textMainCircuit.setEnabled(enabled);
     actionCommands.setEnabled(enabled);
     validateButton.setEnabled(enabled);
+    serverCompilation.setEnabled(enabled);
   }
 
   public FpgaCommander(Project Main) {
@@ -285,10 +288,9 @@ public class FpgaCommander
     c.gridy = 3;
     c.gridwidth = 2;
     panel.add(getProgressBar(), c);
-
     // FPGAReporter GUI
     ReporterGui = new FpgaReportTabbedPane(MyProject);
-    c.gridy = 4;
+    c.gridy = 5;
     panel.add(ReporterGui, c);
     panel.setLocationRelativeTo(null);
     panel.setVisible(false);
@@ -332,6 +334,9 @@ public class FpgaCommander
       nrItems++;
       actionCommands.addItem(S.getter("FpgaGuiDownload"));
       nrItems++;
+//      // note i add this
+//      actionCommands.addItem(S.getter("FpgaGuiServerSyntAndD"));
+//      nrItems++;
       if (MyBoardInformation.fpga.isFlashDefined()) {
         actionCommands.addItem(S.getter("FpgaGuiWriteFlash"));
       }
@@ -356,6 +361,17 @@ public class FpgaCommander
       ((ProjectAddIcon) StopButton.getIcon()).setDeselect(true);
       StopButton.setEnabled(false);
     } else if (e.getActionCommand().equals("Download")) {
+
+      System.out.println("Is This for execution??");
+      boolean useServer = serverCompilation.isSelected();
+      int srv = useServer ? 1 : 0;
+      System.out.println("Selection is: " + srv);
+
+      System.out.println("Ws: " + AppPreferences.FPGA_Workspace.get());
+      localWorkspace = AppPreferences.FPGA_Workspace.get();
+      AppPreferences.FPGA_Workspace.set("/tmp/k1");
+      System.out.println("Ws: " + AppPreferences.FPGA_Workspace.get());
+
       setExecuteWindowEnabled(false);
       setAnnotationWindowEnabled(false);
       setBoardSelectionEnabled(false);
@@ -377,11 +393,21 @@ public class FpgaCommander
               DownloadOnly,
               HdlOnly,
               Progress,
-              panel);
-      downloader.addListener(this);
-      downloader.doDownload();
+              panel,
+              useServer);
+      if(useServer){
+        System.out.println("Do somethings");
+        System.out.println("recuperer les informations du serveur et faire les scripts");
+
+      }else{
+        downloader.addListener(this);
+        downloader.doDownload();// note fait la compilation
+      }
     } else if (e.getSource() instanceof Download) {
       setExecuteWindowEnabled(true);
+      //set WS back
+      AppPreferences.FPGA_Workspace.set(localWorkspace);
+      System.out.println("Ws back"+AppPreferences.FPGA_Workspace.get());
       setAnnotationWindowEnabled(true);
       setBoardSelectionEnabled(true);
       FrequencyPanel.setEnabled(true);
