@@ -704,13 +704,13 @@ public class AppPreferences {
   public static final PrefMonitor<Integer> FPGA_DEFINE_MOVE_COLOR =
       create(new PrefMonitorInt("FPGADefineMoveColor", 0xFF00FF));
   public static final PrefMonitor<Integer> FPGA_MAPPED_COLOR =
-      create(new PrefMonitorInt("FPGAMappedColor", 0x005000));
+      create(new PrefMonitorInt("FPGAMappedColor", 0x000050));
   public static final PrefMonitor<Integer> FPGA_SELECTED_MAPPED_COLOR =
       create(new PrefMonitorInt("FPGASelectedMappedColor", 0xFF0000));
   public static final PrefMonitor<Integer> FPGA_SELECTABLE_MAPPED_COLOR =
-      create(new PrefMonitorInt("FPGASelectableMappedColor", 0x00A000));
+      create(new PrefMonitorInt("FPGASelectableMappedColor", 0x0000A0));
   public static final PrefMonitor<Integer> FPGA_SELECT_COLOR =
-      create(new PrefMonitorInt("FPGASelectColor", 0x0000FF));
+      create(new PrefMonitorInt("FPGASelectColor", 0x00FF00));
 
   // Experimental preferences
   public static final String ACCEL_DEFAULT = "default";
